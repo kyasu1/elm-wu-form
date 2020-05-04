@@ -14,15 +14,16 @@ import Random
 import SendToForm
 import Task
 import Time exposing (Posix)
-import Types
+import Types.Customer as Customer exposing (Customer)
 import Types.MyNumber
+import Types.Transaction as Transaction exposing (Transaction)
 import Ulid exposing (Ulid)
 
 
 type alias Model =
     { state : State
     , zone : Time.Zone
-    , ts : List Types.Transaction
+    , ts : List Transaction
     , picked : Set Ulid
     , modal : Modal
     }
@@ -30,8 +31,8 @@ type alias Model =
 
 type State
     = NotRegistered CustomerForm.Model
-    | Registered Types.Customer
-    | Preview Types.Customer
+    | Registered Customer
+    | Preview Customer
 
 
 type Modal
@@ -64,10 +65,10 @@ type Msg
     | GotUlid Ulid
     | SendToFormMsg SendToForm.Msg
     | AdjustTimeZone Time.Zone
-    | ClickedEditTransaction Types.Transaction
+    | ClickedEditTransaction Transaction.SendToRecord
     | ClickedRemoveSendTo Ulid
     | ClickedPreview
-    | ClickedClosePreview Types.Customer
+    | ClickedClosePreview Customer
     | ClickedPrintPreview
 
 
@@ -130,7 +131,13 @@ update msg model =
                                 |> (\( newModel, cmds ) ->
                                         case SendToForm.isValid newModel of
                                             Just sendTo ->
-                                                ( { model | state = Registered c, ts = Types.sendTo sendTo :: model.ts, modal = None }, Cmd.map SendToFormMsg cmds )
+                                                ( { model
+                                                    | state = Registered c
+                                                    , ts = Transaction.upsert (Transaction.sendTo sendTo) model.ts
+                                                    , modal = None
+                                                  }
+                                                , Cmd.map SendToFormMsg cmds
+                                                )
 
                                             Nothing ->
                                                 ( { model | modal = SendTo newModel }, Cmd.map SendToFormMsg cmds )
@@ -145,8 +152,9 @@ update msg model =
                 GotUlid ulid ->
                     ( { model | modal = SendTo (SendToForm.initialModel ulid) }, Cmd.none )
 
-                -- ClickedEditTransaction t ->
-                --     ( { model | modal =})
+                ClickedEditTransaction r ->
+                    ( { model | modal = SendTo (SendToForm.edit r) }, Cmd.none )
+
                 ClickedAddRecvFrom ->
                     ( model, Cmd.none )
 
@@ -155,7 +163,7 @@ update msg model =
 
                 ClickedRemoveSendTo ulid ->
                     ( { model
-                        | ts = Types.removeTransaction ulid model.ts
+                        | ts = Transaction.removeTransaction ulid model.ts
                         , picked = Set.remove ulid model.picked
                       }
                     , Cmd.none
@@ -286,7 +294,7 @@ view model =
                                 ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            List.map (Types.viewTransaction { zone = model.zone, edit = ClickedEditTransaction, remove = ClickedRemoveSendTo }) model.ts
+                            List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditTransaction, remove = ClickedRemoveSendTo }) model.ts
                         ]
                     , div [ class "border-b-4 my-8 py-4" ]
                         [ div [ class "flex" ]
@@ -297,7 +305,7 @@ view model =
                                 ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            List.map (Types.viewTransaction { zone = model.zone, edit = ClickedEditTransaction, remove = ClickedRemoveSendTo }) model.ts
+                            List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditTransaction, remove = ClickedRemoveSendTo }) model.ts
                         ]
                     , div [ class "pb-8 text-center" ]
                         [ button
@@ -370,7 +378,7 @@ encode model =
                     E.object
                         [ ( "registered"
                           , E.object
-                                [ ( "customer", Types.encodeCustomer c )
+                                [ ( "customer", Customer.encode c )
                                 ]
                           )
                         ]
@@ -379,12 +387,12 @@ encode model =
                     E.object
                         [ ( "registered"
                           , E.object
-                                [ ( "customer", Types.encodeCustomer c )
+                                [ ( "customer", Customer.encode c )
                                 ]
                           )
                         ]
           )
-        , ( "transactions", E.list (\t -> Types.encodeTransaction t) model.ts )
+        , ( "transactions", E.list (\t -> Transaction.encode t) model.ts )
         , ( "picked", E.list (\p -> E.string <| Ulid.toString p) (Set.toList model.picked) )
         , ( "modal", E.null )
         ]
@@ -435,12 +443,12 @@ decoder =
                     )
                 , D.field "registered"
                     (D.map Registered
-                        (D.field "customer" Types.customerDecoder)
+                        (D.field "customer" Customer.decoder)
                     )
                 ]
             )
         )
         (D.succeed Time.utc)
-        (D.field "transactions" (D.list Types.transactionDecoder))
+        (D.field "transactions" (D.list Transaction.decoder))
         (D.field "picked" (D.list Ulid.decode |> D.map Set.fromList))
         (D.succeed None)

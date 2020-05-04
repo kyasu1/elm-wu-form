@@ -1,18 +1,15 @@
-module Types exposing
-    ( Customer
-    , SendToRecord
+module Types.Transaction exposing
+    ( SendToRecord
     , Transaction
-    , customerDecoder
-    , encodeCustomer
-    , encodeTransaction
+    , decoder
+    , encode
     , removeTransaction
     , sendTo
-    , transactionDecoder
-    , viewPreviewTransaction
-    , viewTransaction
+    , viewPreview
+    , viewSendTo
+    , upsert
     )
 
-import Data.Occupation exposing (Occupation)
 import Data.PayoutCountry as PayoutCountry
 import Data.Purpose exposing (Purpose)
 import Html exposing (..)
@@ -21,47 +18,10 @@ import Html.Events exposing (onClick)
 import Icons
 import Json.Decode as D
 import Json.Encode as E
-import Json.Encode.Extra as E
 import Time exposing (Posix)
 import Time.Extra as Time
-import Types.MyNumber exposing (MyNumber)
 import Types.Name exposing (Name)
 import Ulid exposing (Ulid)
-
-
-type alias Customer =
-    { name : Name
-    , tel : String
-    , myNumber : Maybe MyNumber
-    , occupation : Occupation
-    , nationality : String
-    }
-
-
-encodeCustomer : Customer -> E.Value
-encodeCustomer f =
-    E.object
-        [ ( "name", Types.Name.encode f.name )
-        , ( "tel", E.string f.tel )
-        , ( "myNumber", E.maybe Types.MyNumber.encode f.myNumber )
-        , ( "occupation", Data.Occupation.encode f.occupation )
-        , ( "nationality", E.string f.nationality )
-        ]
-
-
-customerDecoder : D.Decoder Customer
-customerDecoder =
-    D.map5 Customer
-        (D.field "name" Types.Name.decoder)
-        (D.field "tel" D.string)
-        (D.field "myNumber" (D.maybe Types.MyNumber.decoder))
-        (D.field "occupation" Data.Occupation.decoder)
-        (D.field "nationality" D.string)
-
-
-
---
---
 
 
 type MTCN
@@ -102,6 +62,34 @@ removeTransaction ulid ts =
         ts
 
 
+unwrapUlid : Transaction -> Ulid
+unwrapUlid t =
+    case t of
+        SendTo r ->
+            r.ulid
+
+        RecvFrom r ->
+            r.ulid
+
+
+upsert : Transaction -> List Transaction -> List Transaction
+upsert t ts =
+    case List.filter (\t_ -> unwrapUlid t == unwrapUlid t_) ts of
+        [] ->
+            t :: ts
+
+        _ ->
+            List.map
+                (\t_ ->
+                    if unwrapUlid t == unwrapUlid t_ then
+                        t
+
+                    else
+                        t_
+                )
+                ts
+
+
 sendTo : SendToRecord -> Transaction
 sendTo =
     SendTo
@@ -127,8 +115,8 @@ type alias RecvFromRecord =
     }
 
 
-encodeTransaction : Transaction -> E.Value
-encodeTransaction t =
+encode : Transaction -> E.Value
+encode t =
     case t of
         SendTo r ->
             E.object
@@ -167,8 +155,8 @@ encodeRecvFromRecord r =
         ]
 
 
-transactionDecoder : D.Decoder Transaction
-transactionDecoder =
+decoder : D.Decoder Transaction
+decoder =
     D.field "type" D.string
         |> D.andThen
             (\t ->
@@ -210,20 +198,20 @@ recvFromRecordDecoder =
 --
 
 
-viewTransaction :
+viewSendTo :
     { zone : Time.Zone
-    , edit : Transaction -> msg
+    , edit : SendToRecord -> msg
     , remove : Ulid -> msg
     }
     -> Transaction
     -> Html msg
-viewTransaction { zone, edit, remove } t =
+viewSendTo { zone, edit, remove } t =
     case t of
         SendTo r ->
             div [ class "border p-4 hover:bg-blue-100", class "cursor-pointer" ]
                 [ div [ class "flex justify-end space-x-2" ]
                     [ a
-                        [ onClick <| edit t
+                        [ onClick <| edit r
                         , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-blue-500 hover:bg-blue-300"
                         ]
                         [ Icons.pencil "w-4 h-4 text-white group-hover:text-gray-500"
@@ -235,28 +223,28 @@ viewTransaction { zone, edit, remove } t =
                         [ Icons.trash "w-4 h-4 text-white group-hover:text-gray-500"
                         ]
                     ]
-                , viewSendTo zone r True
+                , viewSendToDetail zone r True
                 ]
 
         RecvFrom _ ->
             text ""
 
 
-viewPreviewTransaction : Time.Zone -> Transaction -> Html msg
-viewPreviewTransaction zone t =
+viewPreview : Time.Zone -> Transaction -> Html msg
+viewPreview zone t =
     case t of
         SendTo r ->
             div [ class "border p-4" ]
                 [ h2 [ class "font-bold pb-4" ] [ text "Recipient Information 受取人様情報" ]
-                , viewSendTo zone r False
+                , viewSendToDetail zone r False
                 ]
 
         RecvFrom _ ->
             text ""
 
 
-viewSendTo : Time.Zone -> SendToRecord -> Bool -> Html msg
-viewSendTo zone r showTime =
+viewSendToDetail : Time.Zone -> SendToRecord -> Bool -> Html msg
+viewSendToDetail zone r showTime =
     div [ class "grid grid-cols-1 print:grid-col-3 sm:grid-cols-3 col-gap-4 row-gap-4" ]
         [ if showTime then
             div [ class "col-span-3" ]

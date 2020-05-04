@@ -8,14 +8,14 @@ import Html.Attributes exposing (class, name, type_, value)
 import Html.Events exposing (onClick)
 import Json.Decode as D
 import Json.Encode as E
-import Types
+import Types.Customer as Customer exposing (Customer)
 import Types.MyNumber exposing (MyNumber)
 import Types.Name
 
 
 type alias Model =
     { f : CustomerForm
-    , customer : Maybe Types.Customer
+    , customer : Maybe Customer
     , submitted : Bool
     }
 
@@ -51,7 +51,7 @@ emptyForm =
     }
 
 
-edit : Types.Customer -> Model
+edit : Customer -> Model
 edit c =
     { firstName = c.name.firstName
     , middleName = Maybe.withDefault "" c.name.middleName
@@ -73,7 +73,7 @@ encode : Model -> E.Value
 encode model =
     E.object
         [ ( "form", encodeCustomerForm model.f )
-        , ( "customer", Maybe.map Types.encodeCustomer model.customer |> Maybe.withDefault E.null )
+        , ( "customer", Maybe.map Customer.encode model.customer |> Maybe.withDefault E.null )
         , ( "submitted", E.bool model.submitted )
         ]
 
@@ -100,7 +100,7 @@ decoder : D.Decoder Model
 decoder =
     D.map3 Model
         (D.field "form" customerFormDecoder)
-        (D.field "customer" (D.maybe Types.customerDecoder))
+        (D.field "customer" (D.maybe Customer.decoder))
         (D.field "submitted" D.bool)
 
 
@@ -140,7 +140,7 @@ update msg model =
                     ( { model | submitted = True }, Cmd.none )
 
 
-isValid : Model -> Maybe Types.Customer
+isValid : Model -> Maybe Customer
 isValid model =
     if model.submitted then
         model.customer
@@ -153,9 +153,9 @@ isValid model =
 -- Form Decoder
 
 
-formDecoder : FD.Decoder CustomerForm Error Types.Customer
+formDecoder : FD.Decoder CustomerForm Error Customer
 formDecoder =
-    FD.map5 Types.Customer
+    FD.map5 Customer
         Types.Name.formDecoder
         (FD.lift .tel tel)
         (FD.lift .myNumber myNumber)
