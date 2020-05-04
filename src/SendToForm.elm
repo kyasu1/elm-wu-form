@@ -9,15 +9,16 @@ import Html.Attributes exposing (class, name, type_, value)
 import Html.Events exposing (..)
 import Task
 import Time exposing (Posix)
-import Types
+import Types.Customer exposing (Customer)
 import Types.Name
+import Types.Transaction as Transaction
 import Ulid exposing (Ulid)
 
 
 type alias Model =
     { form : Form
     , ulid : Ulid
-    , sendToRecord : Maybe Types.SendToRecord
+    , sendToRecord : Maybe Transaction.SendToRecord
     , payoutCountryState : Data.PayoutCountry.State
     , submitted : Bool
     }
@@ -54,18 +55,24 @@ emptyForm =
     }
 
 
-edit : Types.SendToRecord -> Form
+edit : Transaction.SendToRecord -> Model
 edit r =
-    { firstName = r.name.firstName
-    , middleName = Maybe.withDefault "" r.name.middleName
-    , lastName = r.name.lastName
-    , amount = String.fromFloat r.amount
-    , countryCode = r.countryCode
-    , purpose = r.purpose
+    { form =
+        { firstName = r.name.firstName
+        , middleName = Maybe.withDefault "" r.name.middleName
+        , lastName = r.name.lastName
+        , amount = String.fromFloat r.amount
+        , countryCode = r.countryCode
+        , purpose = r.purpose
+        }
+    , ulid = r.ulid
+    , sendToRecord = Just r
+    , payoutCountryState = Data.PayoutCountry.initialState r.countryCode
+    , submitted = False
     }
 
 
-isValid : Model -> Maybe Types.SendToRecord
+isValid : Model -> Maybe Transaction.SendToRecord
 isValid model =
     if model.submitted then
         model.sendToRecord
@@ -114,9 +121,9 @@ update msg ({ form } as model) =
 -- Form Decoder
 
 
-formDecoder : Ulid -> Posix -> FD.Decoder Form Error Types.SendToRecord
+formDecoder : Ulid -> Posix -> FD.Decoder Form Error Transaction.SendToRecord
 formDecoder ulid posix =
-    FD.top Types.SendToRecord
+    FD.top Transaction.SendToRecord
         |> FD.field (FD.always ulid)
         |> FD.field (FD.always posix)
         |> FD.field Types.Name.formDecoder
