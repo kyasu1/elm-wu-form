@@ -203,7 +203,7 @@ viewSendTo :
 viewSendTo { zone, edit, remove } t =
     case t of
         SendTo r ->
-            div [ class "border p-4 hover:bg-blue-100", class "cursor-pointer" ]
+            div [ class "border p-4", class " --hover:bg-blue-100 --cursor-pointer" ]
                 [ viewSendToDetail zone r True
                 , div [ class "flex space-x-2 pt-4" ]
                     [ a
@@ -237,7 +237,7 @@ viewRecvFrom :
 viewRecvFrom { zone, edit, remove } t =
     case t of
         RecvFrom r ->
-            div [ class "border p-4 hover:bg-blue-100", class "cursor-pointer" ]
+            div [ class "border p-4", class "--hover:bg-blue-100 --cursor-pointer" ]
                 [ viewRecvFromDetail zone r True
                 , div [ class "flex space-x-2 pt-4" ]
                     [ a

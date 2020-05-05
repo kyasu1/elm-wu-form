@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "clean": "rm -r dist/bundle.js*",
-    "build": "rollup -c",
+    "build": "NODE_ENV=production rollup -c",
     "autobuild": "rollup -c -w",
     "dev": "run-p start:dev autobuild",
     "start": "sirv dist --single",

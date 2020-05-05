@@ -5,10 +5,14 @@ import hmr from 'rollup-plugin-hot';
 // import resolve from '@rollup/plugin-node-resolve';
 // import commonjs from '@rollup/plugin-commonjs';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default {
   input: 'src/index.js',
-  output: {
+  output: isProduction ? {} : {
     dir: 'dist',
+  },
+  output: {
     file: 'dist/bundle.js',
     format: 'iife'
   },
@@ -16,7 +20,7 @@ export default {
     elm({
       exclude: 'elm-stuff/**',
       compiler: {
-        debug: true
+        debug: !isProduction,
       }
     }),
     // resolve(),
@@ -27,8 +31,7 @@ export default {
         require('autoprefixer'),        
       ]
     }),
-
-    hmr({
+    !isProduction && hmr({
       public: 'dist',
       baseUrl: '/',
       port: 12345,

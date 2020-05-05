@@ -10,6 +10,7 @@ import Html.Events exposing (..)
 import Icons
 import Json.Decode as D
 import Json.Encode as E
+import Modals
 import Preview
 import Random
 import RecvFromForm
@@ -40,9 +41,8 @@ type State
 
 
 type Modal
-    = SendTo SendToForm.Model
-    | RecvFrom RecvFromForm.Model
-    | None
+    = None
+    | DangerModal (Modals.SimpleWithDismissConfig Msg)
 
 
 main : Program E.Value Model Msg
@@ -74,7 +74,9 @@ type Msg
     | AdjustTimeZone Time.Zone
     | ClickedEditSendTo Transaction.SendToRecord
     | ClickedEditRecvFrom Transaction.RecvFromRecord
-    | ClickedRemoveSendTo Ulid
+    | ClickedRemove Ulid
+    | ClickedRemoveOk Ulid
+    | ClickedRemoveCancel
     | ClickedPreview
     | ClickedClosePreview Customer
     | ClickedPrintPreview
@@ -142,7 +144,7 @@ update msg model =
                     ( { model | state = EditSendTo c (SendToForm.initialModel ulid) }, Cmd.none )
 
                 ClickedEditSendTo r ->
-                    ( { model | modal = SendTo (SendToForm.edit r) }, Cmd.none )
+                    ( { model | state = EditSendTo c (SendToForm.edit r) }, Cmd.none )
 
                 -- RecvFrom
                 ClickedAddRecvFrom ->
@@ -155,22 +157,41 @@ update msg model =
                     ( { model | state = EditRecvFrom c (RecvFromForm.initialModel ulid) }, Cmd.none )
 
                 ClickedEditRecvFrom r ->
-                    ( { model | modal = RecvFrom (RecvFromForm.edit r) }, Cmd.none )
+                    ( { model | state = EditRecvFrom c (RecvFromForm.edit r) }, Cmd.none )
 
                 --
                 AdjustTimeZone zone ->
                     ( { model | zone = zone }, Cmd.none )
 
-                ClickedRemoveSendTo ulid ->
+                ClickedPreview ->
+                    ( { model | state = Preview c }, Cmd.none )
+
+                ClickedRemove ulid ->
+                    ( { model
+                        | modal =
+                            DangerModal
+                                { title = "Delete/削除"
+                                , message = "Are you sure you want to remove this memo ? このメモを削除してよろしいですか？"
+                                , okText = "Delete/削除"
+                                , cancelText = "Cancel"
+                                , okCmd = ClickedRemoveOk ulid
+                                , cancelCmd = ClickedRemoveCancel
+                                }
+                      }
+                    , toggleModal <| E.bool True
+                    )
+
+                ClickedRemoveOk ulid ->
                     ( { model
                         | ts = Transaction.removeTransaction ulid model.ts
                         , picked = Set.remove ulid model.picked
+                        , modal = None
                       }
-                    , Cmd.none
+                    , toggleModal <| E.bool False
                     )
 
-                ClickedPreview ->
-                    ( { model | state = Preview c }, Cmd.none )
+                ClickedRemoveCancel ->
+                    ( { model | modal = None }, toggleModal <| E.bool False )
 
                 _ ->
                     ( model, Cmd.none )
@@ -200,7 +221,6 @@ update msg model =
                                             ( { model
                                                 | state = Registered c
                                                 , ts = Transaction.upsert (Transaction.sendTo sendTo) model.ts
-                                                , modal = None
                                               }
                                             , Cmd.map SendToFormMsg cmds
                                             )
@@ -226,7 +246,6 @@ update msg model =
                                             ( { model
                                                 | state = Registered c
                                                 , ts = Transaction.upsert (Transaction.recvFrom recvFrom) model.ts
-                                                , modal = None
                                               }
                                             , Cmd.map RecvFromFormMsg cmds
                                             )
@@ -355,7 +374,7 @@ view model =
                                 ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditSendTo, remove = ClickedRemoveSendTo }) model.ts
+                            List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditSendTo, remove = ClickedRemove }) model.ts
                         ]
                     , div [ class "border-b-4 my-8 py-4" ]
                         [ div [ class "flex pb-4" ]
@@ -369,7 +388,7 @@ view model =
                                 ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            List.map (Transaction.viewRecvFrom { zone = model.zone, edit = ClickedEditRecvFrom, remove = ClickedRemoveSendTo }) model.ts
+                            List.map (Transaction.viewRecvFrom { zone = model.zone, edit = ClickedEditRecvFrom, remove = ClickedRemove }) model.ts
                         ]
                     , div [ class "pb-8 text-center" ]
                         [ button
@@ -380,14 +399,11 @@ view model =
                         , button [ class "rounded mx-2 px-2 py-1 w-24 bg-red-700 text-white font-bold" ] [ text "Clear All" ]
                         ]
                     , case model.modal of
-                        SendTo form ->
-                            modal (SendToForm.view form |> Html.map SendToFormMsg)
-
-                        RecvFrom form ->
-                            modal (RecvFromForm.view form |> Html.map RecvFromFormMsg)
-
                         None ->
                             text ""
+
+                        DangerModal config ->
+                             (Modals.simpleWithDismiss config)
                     ]
 
         EditSendTo c f ->
@@ -397,14 +413,14 @@ view model =
             RecvFromForm.view f |> Html.map RecvFromFormMsg
 
 
-modal : Html msg -> Html msg
-modal html =
-    div [ class "fixed bottom-0 inset-x-0 px-4 pb-6 sm:inset-0 sm:p-0 flex items-center justify-center" ]
-        [ div [ class "fixed inset-0 transition-opcaity" ]
-            [ div [ class "absolute inset-0 bg-gray-500 opacity-75" ] []
-            ]
-        , div [ class "bg-white rounded-lg px-4 pt-2 pb-2 overflow-hidden shadow-xl transform transition-all sm:max-w-6xl sm:w-full sm:p-6" ] [ html ]
-        ]
+-- modal : Html msg -> Html msg
+-- modal html =
+--     div [ class "fixed bottom-0 inset-x-0 px-4 pb-6 sm:inset-0 sm:p-0 flex items-center justify-center" ]
+--         [ div [ class "fixed inset-0 transition-opcaity" ]
+--             [ div [ class "absolute inset-0 bg-gray-500 opacity-75" ] []
+--             ]
+--         , html
+--         ]
 
 
 

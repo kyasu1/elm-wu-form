@@ -1,4 +1,9 @@
 module.exports = {
+  purge: [
+    './src/**/*.elm',
+    './src/**/*.js',
+    './dist/index.html',
+  ],
   theme: {
     extend: {
       screens: {
