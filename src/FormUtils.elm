@@ -1,9 +1,10 @@
-module FormUtils exposing (Error, customAlpha, field, fromString, optional, required, toString)
+module FormUtils exposing (Error, customAlpha, field, formatFloatPrice, fromString, optional, required, toString)
 
 import Form.Decoder as FD
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
+import Round
 
 
 
@@ -60,6 +61,43 @@ customAlpha =
 --
 
 
+formatFloatPrice : Float -> String
+formatFloatPrice price =
+    case Round.round 4 price |> String.split "." of
+        d :: "0000" :: _ ->
+            formatPrice d
+
+        d :: f :: _ ->
+            formatPrice d ++ "." ++ f
+
+        _ ->
+            ""
+
+
+formatPrice : String -> String
+formatPrice price =
+    price
+        |> String.toList
+        |> List.reverse
+        |> formatPriceHelper []
+        |> List.reverse
+        |> String.join ","
+
+
+formatPriceHelper : List String -> List Char -> List String
+formatPriceHelper sum list =
+    case list of
+        [] ->
+            sum
+
+        _ ->
+            (List.take 3 list |> List.reverse |> String.fromList) :: formatPriceHelper sum (List.drop 3 list)
+
+
+
+--
+
+
 field :
     { v : String
     , l : String
@@ -90,7 +128,7 @@ field { v, l, u, d, n, submitted } =
         [ div [ class "text-xs px-2" ] [ text l ]
         , div [ class "relative" ]
             [ input
-                [ class <| "border ml-2 px-2 py-1 w-full" ++ borderClass
+                [ class <| "border sm:ml-2 px-2 py-1 w-full" ++ borderClass
                 , value v
                 , onInput (\s -> u <| String.trim s)
                 , name n

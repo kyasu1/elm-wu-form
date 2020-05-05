@@ -17,7 +17,9 @@
             "elm-community/json-extra": "4.2.0",
             "erlandsona/assoc-set": "1.1.0",
             "justinmimbs/time-extra": "1.1.0",
-            "kyasu1/elm-ulid": "1.0.0"
+            "kyasu1/elm-ulid": "1.0.0",
+            "myrho/elm-round": "1.0.4",
+            "supermario/elm-countries": "1.0.4"
         },
         "indirect": {
             "elm/parser": "1.1.0",

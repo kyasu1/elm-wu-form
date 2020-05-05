@@ -1,6 +1,5 @@
-module SendToForm exposing (Model, Msg, edit, initialModel, isCanceled, isValid, update, view)
+module RecvFromForm exposing (Model, Msg, edit, initialModel, isValid, update, view, isCanceled)
 
-import Data.PayoutCountry
 import Data.Purpose exposing (Purpose)
 import Form.Decoder as FD
 import FormUtils exposing (Error, field)
@@ -9,6 +8,7 @@ import Html.Attributes exposing (class, title)
 import Html.Events exposing (onClick)
 import Task
 import Time exposing (Posix)
+import Types.MTCN as MTCN exposing (MTCN)
 import Types.Name
 import Types.Transaction as Transaction
 import Ulid exposing (Ulid)
@@ -17,8 +17,7 @@ import Ulid exposing (Ulid)
 type alias Model =
     { form : Form
     , ulid : Ulid
-    , sendToRecord : Maybe Transaction.SendToRecord
-    , payoutCountryState : Data.PayoutCountry.State
+    , record : Maybe Transaction.RecvFromRecord
     , submitted : Bool
     , canceled : Bool
     }
@@ -28,8 +27,7 @@ initialModel : Ulid -> Model
 initialModel ulid =
     { form = emptyForm
     , ulid = ulid
-    , sendToRecord = Nothing
-    , payoutCountryState = Data.PayoutCountry.initialState Data.PayoutCountry.default
+    , record = Nothing
     , submitted = False
     , canceled = False
     }
@@ -40,8 +38,8 @@ type alias Form =
     , middleName : String
     , lastName : String
     , amount : String
-    , countryCode : Data.PayoutCountry.Code
     , purpose : Purpose
+    , mtcn : String
     }
 
 
@@ -51,33 +49,32 @@ emptyForm =
     , middleName = ""
     , lastName = ""
     , amount = ""
-    , countryCode = Data.PayoutCountry.default
     , purpose = Data.Purpose.default
+    , mtcn = ""
     }
 
 
-edit : Transaction.SendToRecord -> Model
+edit : Transaction.RecvFromRecord -> Model
 edit r =
     { form =
         { firstName = r.name.firstName
         , middleName = Maybe.withDefault "" r.name.middleName
         , lastName = r.name.lastName
         , amount = String.fromFloat r.amount
-        , countryCode = r.countryCode
         , purpose = r.purpose
+        , mtcn = MTCN.toString r.mtcn
         }
     , ulid = r.ulid
-    , sendToRecord = Just r
-    , payoutCountryState = Data.PayoutCountry.initialState r.countryCode
+    , record = Just r
     , submitted = False
     , canceled = False
     }
 
 
-isValid : Model -> Maybe Transaction.SendToRecord
+isValid : Model -> Maybe Transaction.RecvFromRecord
 isValid model =
     if model.submitted then
-        model.sendToRecord
+        model.record
 
     else
         Nothing
@@ -92,12 +89,11 @@ type Msg
     = ChangedInput Form
     | ClickedRegister
     | ClickedClose
-    | PayoutCountryMsg Data.PayoutCountry.Msg
     | GotTime Posix
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ form } as model) =
+update msg model =
     case msg of
         ChangedInput f ->
             ( { model | form = f }, Cmd.none )
@@ -108,39 +104,28 @@ update msg ({ form } as model) =
         GotTime posix ->
             case FD.run (formDecoder model.ulid posix) model.form of
                 Ok r ->
-                    ( { model | submitted = True, sendToRecord = Just r }, Cmd.none )
+                    ( { model | submitted = True, record = Just r }, Cmd.none )
 
                 Err _ ->
-                    ( { model | submitted = True, sendToRecord = Nothing }, Cmd.none )
+                    ( { model | submitted = True, record = Nothing }, Cmd.none )
 
         ClickedClose ->
             ( { model | canceled = True }, Cmd.none )
-
-        PayoutCountryMsg msg_ ->
-            Data.PayoutCountry.update msg_ model.payoutCountryState
-                |> (\state ->
-                        case Data.PayoutCountry.selected state of
-                            Just ( code, _ ) ->
-                                ( { model | payoutCountryState = state, form = { form | countryCode = code } }, Cmd.none )
-
-                            Nothing ->
-                                ( { model | payoutCountryState = state }, Cmd.none )
-                   )
 
 
 
 -- Form Decoder
 
 
-formDecoder : Ulid -> Posix -> FD.Decoder Form Error Transaction.SendToRecord
+formDecoder : Ulid -> Posix -> FD.Decoder Form Error Transaction.RecvFromRecord
 formDecoder ulid posix =
-    FD.top Transaction.SendToRecord
+    FD.top Transaction.RecvFromRecord
         |> FD.field (FD.always ulid)
         |> FD.field (FD.always posix)
         |> FD.field Types.Name.formDecoder
         |> FD.field (FD.lift .amount amount)
-        |> FD.field (FD.lift .countryCode FD.identity)
         |> FD.field (FD.lift .purpose FD.identity)
+        |> FD.field (FD.lift .mtcn mtcn)
 
 
 amount : FD.Decoder String Error Float
@@ -158,17 +143,33 @@ amount =
             )
 
 
+mtcn : FD.Decoder String Error MTCN
+mtcn =
+    FD.identity
+        |> FD.map MTCN.fromString
+
+
 
 --
 
 
 view : Model -> Html Msg
-view { form, submitted, payoutCountryState } =
+view { form, submitted } =
     div [ class "bg-white px-4 py-4 sm:px-16 sm:py-16 border rounded border-gray-200" ]
-        [ h2 [ class "p-2 font-black" ] [ text "Recipient Information 受取人様情報" ]
+        [ h2 [ class "p-2 font-black" ] [ text "Sender's Information 送金人様情報" ]
         , p [ class "px-2 text-sm" ] [ text "お名前はアルファベットで入力してください" ]
         , div [ class "grid grid-cols-1 sm:grid-cols-3 col-gap-4" ]
-            [ field
+            [ div [ class "sm:col-span-3" ]
+                [ field
+                    { v = form.mtcn
+                    , l = "MTCN（送金管理番号）"
+                    , u = \s -> { form | mtcn = s } |> ChangedInput
+                    , d = mtcn
+                    , n = "mtcn"
+                    , submitted = submitted
+                    }
+                ]
+            , field
                 { v = form.firstName
                 , l = "First Name (名)"
                 , u = \s -> { form | firstName = String.toUpper s } |> ChangedInput
@@ -194,20 +195,15 @@ view { form, submitted, payoutCountryState } =
                 }
             , field
                 { v = form.amount
-                , l = "Amount to be sent （送金額）"
+                , l = "Amount Expected （予想受取額）"
                 , u = \s -> { form | amount = s } |> ChangedInput
                 , d = amount
                 , n = "amount"
                 , submitted = submitted
                 }
-            , div [ class "sm:col-span-2" ] [ Data.PayoutCountry.selector payoutCountryState |> Html.map PayoutCountryMsg ]
             , div [ class "sm:col-span-3" ]
                 [ Data.Purpose.view form ChangedInput ]
             , div [] [ button [ onClick ClickedRegister, title "Save/保存" ] [ text "Save" ] ]
             , div [] [ button [ onClick ClickedClose, title "Cancel/取り消し" ] [ text "Cancel" ] ]
             ]
         ]
-
-
-
---

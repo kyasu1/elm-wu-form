@@ -5,12 +5,14 @@ import Browser
 import CustomerForm
 import Data.Occupation
 import Html exposing (..)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, title)
 import Html.Events exposing (..)
+import Icons
 import Json.Decode as D
 import Json.Encode as E
 import Preview
 import Random
+import RecvFromForm
 import SendToForm
 import Task
 import Time exposing (Posix)
@@ -33,11 +35,13 @@ type State
     = NotRegistered CustomerForm.Model
     | Registered Customer
     | Preview Customer
+    | EditSendTo Customer SendToForm.Model
+    | EditRecvFrom Customer RecvFromForm.Model
 
 
 type Modal
     = SendTo SendToForm.Model
-    | RecvFrom
+    | RecvFrom RecvFromForm.Model
     | None
 
 
@@ -61,15 +65,20 @@ type Msg
     | ClickedEdit
     | ClickedAddSendTo
     | ClickedAddRecvFrom
-    | GotNewTime Posix
-    | GotUlid Ulid
+    | GotNewTimeSendTo Posix
+    | GotUlidSendTo Ulid
     | SendToFormMsg SendToForm.Msg
+    | RecvFromFormMsg RecvFromForm.Msg
+    | GotNewTimeRecvFrom Posix
+    | GotUlidRecvFrom Ulid
     | AdjustTimeZone Time.Zone
-    | ClickedEditTransaction Transaction.SendToRecord
+    | ClickedEditSendTo Transaction.SendToRecord
+    | ClickedEditRecvFrom Transaction.RecvFromRecord
     | ClickedRemoveSendTo Ulid
     | ClickedPreview
     | ClickedClosePreview Customer
     | ClickedPrintPreview
+    | ClickedPick Ulid
 
 
 init : E.Value -> ( Model, Cmd Msg )
@@ -115,49 +124,40 @@ update msg model =
 
         Registered c ->
             case msg of
+                -- Customer
                 ClickedReset ->
                     ( { model | state = NotRegistered CustomerForm.initialModel }, Cmd.none )
 
                 ClickedEdit ->
                     ( { model | state = NotRegistered <| CustomerForm.edit c }, Cmd.none )
 
+                -- SendTo
                 ClickedAddSendTo ->
-                    ( model, Task.perform GotNewTime Time.now )
+                    ( model, Task.perform GotNewTimeSendTo Time.now )
 
-                SendToFormMsg msg_ ->
-                    case model.modal of
-                        SendTo model_ ->
-                            SendToForm.update msg_ model_
-                                |> (\( newModel, cmds ) ->
-                                        case SendToForm.isValid newModel of
-                                            Just sendTo ->
-                                                ( { model
-                                                    | state = Registered c
-                                                    , ts = Transaction.upsert (Transaction.sendTo sendTo) model.ts
-                                                    , modal = None
-                                                  }
-                                                , Cmd.map SendToFormMsg cmds
-                                                )
+                GotNewTimeSendTo posix ->
+                    ( model, newUlid GotUlidSendTo posix )
 
-                                            Nothing ->
-                                                ( { model | modal = SendTo newModel }, Cmd.map SendToFormMsg cmds )
-                                   )
+                GotUlidSendTo ulid ->
+                    ( { model | state = EditSendTo c (SendToForm.initialModel ulid) }, Cmd.none )
 
-                        _ ->
-                            ( model, Cmd.none )
-
-                GotNewTime posix ->
-                    ( model, newUlid posix )
-
-                GotUlid ulid ->
-                    ( { model | modal = SendTo (SendToForm.initialModel ulid) }, Cmd.none )
-
-                ClickedEditTransaction r ->
+                ClickedEditSendTo r ->
                     ( { model | modal = SendTo (SendToForm.edit r) }, Cmd.none )
 
+                -- RecvFrom
                 ClickedAddRecvFrom ->
-                    ( model, Cmd.none )
+                    ( model, Task.perform GotNewTimeRecvFrom Time.now )
 
+                GotNewTimeRecvFrom posix ->
+                    ( model, newUlid GotUlidRecvFrom posix )
+
+                GotUlidRecvFrom ulid ->
+                    ( { model | state = EditRecvFrom c (RecvFromForm.initialModel ulid) }, Cmd.none )
+
+                ClickedEditRecvFrom r ->
+                    ( { model | modal = RecvFrom (RecvFromForm.edit r) }, Cmd.none )
+
+                --
                 AdjustTimeZone zone ->
                     ( { model | zone = zone }, Cmd.none )
 
@@ -186,10 +186,62 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
+        EditSendTo c model_ ->
+            case msg of
+                SendToFormMsg msg_ ->
+                    SendToForm.update msg_ model_
+                        |> (\( newModel, cmds ) ->
+                                if SendToForm.isCanceled newModel then
+                                    ( { model | state = Registered c }, Cmd.none )
 
-newUlid : Posix -> Cmd Msg
-newUlid posix =
-    Random.generate GotUlid (Ulid.ulidGenerator posix)
+                                else
+                                    case SendToForm.isValid newModel of
+                                        Just sendTo ->
+                                            ( { model
+                                                | state = Registered c
+                                                , ts = Transaction.upsert (Transaction.sendTo sendTo) model.ts
+                                                , modal = None
+                                              }
+                                            , Cmd.map SendToFormMsg cmds
+                                            )
+
+                                        Nothing ->
+                                            ( { model | state = EditSendTo c newModel }, Cmd.map SendToFormMsg cmds )
+                           )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        EditRecvFrom c model_ ->
+            case msg of
+                RecvFromFormMsg msg_ ->
+                    RecvFromForm.update msg_ model_
+                        |> (\( newModel, cmds ) ->
+                                if RecvFromForm.isCanceled newModel then
+                                    ( { model | state = Registered c }, Cmd.none )
+
+                                else
+                                    case RecvFromForm.isValid newModel of
+                                        Just recvFrom ->
+                                            ( { model
+                                                | state = Registered c
+                                                , ts = Transaction.upsert (Transaction.recvFrom recvFrom) model.ts
+                                                , modal = None
+                                              }
+                                            , Cmd.map RecvFromFormMsg cmds
+                                            )
+
+                                        Nothing ->
+                                            ( { model | state = EditRecvFrom c newModel }, Cmd.map RecvFromFormMsg cmds )
+                           )
+
+                _ ->
+                    ( model, Cmd.none )
+
+
+newUlid : (Ulid -> Msg) -> Posix -> Cmd Msg
+newUlid msg posix =
+    Random.generate msg (Ulid.ulidGenerator posix)
 
 
 
@@ -206,10 +258,14 @@ newUlid posix =
 
 header : Html msg -> Html msg
 header content =
-    div [ class "bg-gray-400 py-8 px-4 sm:px-6 lg:px-8" ]
+    div [ class "bg-gray-400 py-2 sm:py-8 px-2 sm:px-6 lg:px-8 min-h-screen" ]
         [ div [ class "bg-white relative mx-auto max-w-6xl" ]
-            [ div [ class "px-16 pt-8" ]
-                [ h1 [ class "text-xl font-bold" ] [ text "Western Union Preparation Form / ウェスタンユニオン 送金メモ" ]
+            [ div [ class "px-4 sm:px-16 pt-8 pb-4" ]
+                [ h1 [ class "text-xl font-bold flex flex-col sm:flex-row" ]
+                    [ span [] [ text "Western Union Preparation Form" ]
+                    , span [ class "hidden sm:inline" ] [ text "\u{00A0}/\u{00A0}" ]
+                    , span [] [ text "ウェスタンユニオン 送金メモ" ]
+                    ]
                 , ol [ class "ml-4 text-sm" ]
                     [ li [] [ text "1. Fill in your information." ]
                     , li [] [ text "2. Add Sender or Recipient Information" ]
@@ -233,23 +289,27 @@ view model =
 
         Registered c ->
             header <|
-                div [ class "px-16" ]
-                    [ div [ class "flex border-b my-8" ]
+                div [ class "px-4 sm:px-16" ]
+                    [ div [ class "flex border-b my-8 pb-4" ]
                         [ h2 [ class "font-bold" ] [ text "Your Information お客様情報" ]
-                        , div [ class "flex" ]
-                            [ span [ class "inline-flex" ]
-                                [ button
-                                    [ onClick ClickedReset
-                                    , class "inline-flex items-center px-2 py-1.5 text-xs leading-4 font-medium rounded text-gray-700 bg-white hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:text-gray-800 active:bg-gray-50 transition ease-in-out duration-150"
-                                    ]
-                                    [ text "リセット" ]
-                                ]
-                            , span [ class "inline-flex rounded-md shadow-sm" ]
+                        , div [ class "flex ml-2 space-x-2" ]
+                            [ span [ class "inline-flex rounded-md shadow-sm" ]
                                 [ button
                                     [ onClick ClickedEdit
-                                    , class "inline-flex items-center px-2 py-1.5 border border-transparent text-xs leading-4 font-medium rounded text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700 transition ease-in-out duration-150"
+                                    , title "Edit/編集"
+                                    , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-blue-500 hover:bg-blue-300"
                                     ]
-                                    [ text "編集" ]
+                                    [ Icons.pencil "w-4 h-4 text-white group-hover:text-gray-500"
+                                    ]
+                                ]
+                            , span [ class "inline-flex" ]
+                                [ button
+                                    [ onClick ClickedReset
+                                    , title "Reset/リセット"
+                                    , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-red-500 hover:bg-red-300"
+                                    ]
+                                    [ Icons.trash "w-4 h-4 text-white group-hover:text-gray-500"
+                                    ]
                                 ]
                             ]
                         ]
@@ -284,28 +344,32 @@ view model =
                             ]
                         ]
                     , div [ class "border-b-4 my-8 py-4" ]
-                        [ div [ class "flex" ]
+                        [ div [ class "flex pb-4" ]
                             [ h2 [ class "font-bold" ] [ text "Send To（送金先）" ]
                             , button
                                 [ onClick ClickedAddSendTo
-                                , class "inline-flex items-center px-2 py-1.5 text-xs leading-4 font-medium rounded text-gray-700 bg-white hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:text-gray-800 active:bg-gray-50 transition ease-in-out duration-150"
+                                , title "Add/追加"
+                                , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-blue-500 hover:bg-blue-300"
                                 ]
-                                [ text "追加"
+                                [ Icons.plus "w-4 h-4 text-white group-hover:text-gray-500"
                                 ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditTransaction, remove = ClickedRemoveSendTo }) model.ts
+                            List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditSendTo, remove = ClickedRemoveSendTo }) model.ts
                         ]
                     , div [ class "border-b-4 my-8 py-4" ]
-                        [ div [ class "flex" ]
+                        [ div [ class "flex pb-4" ]
                             [ h2 [ class "font-bold" ] [ text "Receive From（受取先）" ]
                             , button
-                                [ class "inline-flex items-center px-2 py-1.5 text-xs leading-4 font-medium rounded text-gray-700 bg-white hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:text-gray-800 active:bg-gray-50 transition ease-in-out duration-150" ]
-                                [ text "追加"
+                                [ onClick ClickedAddRecvFrom
+                                , title "Add/追加"
+                                , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-blue-500 hover:bg-blue-300"
+                                ]
+                                [ Icons.plus "w-4 h-4 text-white group-hover:text-gray-500"
                                 ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditTransaction, remove = ClickedRemoveSendTo }) model.ts
+                            List.map (Transaction.viewRecvFrom { zone = model.zone, edit = ClickedEditRecvFrom, remove = ClickedRemoveSendTo }) model.ts
                         ]
                     , div [ class "pb-8 text-center" ]
                         [ button
@@ -319,12 +383,18 @@ view model =
                         SendTo form ->
                             modal (SendToForm.view form |> Html.map SendToFormMsg)
 
-                        RecvFrom ->
-                            text ""
+                        RecvFrom form ->
+                            modal (RecvFromForm.view form |> Html.map RecvFromFormMsg)
 
                         None ->
                             text ""
                     ]
+
+        EditSendTo c f ->
+            SendToForm.view f |> Html.map SendToFormMsg
+
+        EditRecvFrom c f ->
+            RecvFromForm.view f |> Html.map RecvFromFormMsg
 
 
 modal : Html msg -> Html msg
@@ -358,6 +428,9 @@ updateWithStorage msg oldModel =
 port printWindow : E.Value -> Cmd msg
 
 
+port toggleModal : E.Value -> Cmd msg
+
+
 
 --
 
@@ -384,6 +457,24 @@ encode model =
                         ]
 
                 Preview c ->
+                    E.object
+                        [ ( "registered"
+                          , E.object
+                                [ ( "customer", Customer.encode c )
+                                ]
+                          )
+                        ]
+
+                EditSendTo c f ->
+                    E.object
+                        [ ( "registered"
+                          , E.object
+                                [ ( "customer", Customer.encode c )
+                                ]
+                          )
+                        ]
+
+                EditRecvFrom c f ->
                     E.object
                         [ ( "registered"
                           , E.object

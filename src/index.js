@@ -18,3 +18,15 @@ app.ports.setStorage.subscribe(function (state) {
 app.ports.printWindow.subscribe(function (state) {
     window.print();
 })
+
+app.ports.toggleModal.subscribe(function(state) {
+    if (state === true) {
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${window.scrollY}px`;
+    } else {
+        const top = document.body.style.top;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);        
+    }
+})

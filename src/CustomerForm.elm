@@ -188,7 +188,7 @@ nationality =
 
 contactForm : Model -> Html Msg
 contactForm { f, submitted } =
-    div [ class "bg-white px-16 py-16" ]
+    div [ class "bg-white px-2 sm:px-16 pb-16 pt-4 border-t " ]
         [ h2 [ class "p-2 font-black" ] [ text "Your Information お客様情報" ]
         , p [ class "px-2 text-sm" ] [ text "お名前はアルファベットで入力してください" ]
         , div [ class "flex flex-col sm:flex-row" ]

@@ -1,17 +1,21 @@
 module Types.Transaction exposing
-    ( SendToRecord
+    ( RecvFromRecord
+    , SendToRecord
     , Transaction
     , decoder
     , encode
+    , recvFrom
     , removeTransaction
     , sendTo
-    , viewPreview
-    , viewSendTo
     , upsert
+    , viewPreview
+    , viewRecvFrom
+    , viewSendTo
     )
 
 import Data.PayoutCountry as PayoutCountry
 import Data.Purpose exposing (Purpose)
+import FormUtils
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -20,23 +24,9 @@ import Json.Decode as D
 import Json.Encode as E
 import Time exposing (Posix)
 import Time.Extra as Time
+import Types.MTCN as MTCN exposing (MTCN)
 import Types.Name exposing (Name)
 import Ulid exposing (Ulid)
-
-
-type MTCN
-    = MTCN String
-
-
-mtcnToString : MTCN -> String
-mtcnToString (MTCN s) =
-    s
-
-
-mtcnDecoder : D.Decoder MTCN
-mtcnDecoder =
-    D.string
-        |> D.map MTCN
 
 
 
@@ -95,6 +85,11 @@ sendTo =
     SendTo
 
 
+recvFrom : RecvFromRecord -> Transaction
+recvFrom =
+    RecvFrom
+
+
 type alias SendToRecord =
     { ulid : Ulid
     , posix : Posix
@@ -151,7 +146,7 @@ encodeRecvFromRecord r =
         , ( "name", Types.Name.encode r.name )
         , ( "amount", E.float r.amount )
         , ( "purpose", E.string <| Data.Purpose.toString r.purpose )
-        , ( "mtcn", E.string <| mtcnToString r.mtcn )
+        , ( "mtcn", MTCN.encode r.mtcn )
         ]
 
 
@@ -191,7 +186,7 @@ recvFromRecordDecoder =
         (D.field "name" Types.Name.decoder)
         (D.field "amount" D.float)
         (D.field "purpose" Data.Purpose.decoder)
-        (D.field "mtcn" mtcnDecoder)
+        (D.field "mtcn" MTCN.decoder)
 
 
 
@@ -209,7 +204,42 @@ viewSendTo { zone, edit, remove } t =
     case t of
         SendTo r ->
             div [ class "border p-4 hover:bg-blue-100", class "cursor-pointer" ]
-                [ div [ class "flex justify-end space-x-2" ]
+                [ viewSendToDetail zone r True
+                , div [ class "flex space-x-2 pt-4" ]
+                    [ a
+                        [ onClick <| edit r
+                        , title "Edit/編集"
+                        , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-blue-500 hover:bg-blue-300"
+                        ]
+                        [ Icons.pencil "w-4 h-4 text-white group-hover:text-gray-500"
+                        ]
+                    , a
+                        [ onClick <| remove r.ulid
+                        , title "Delete/削除"
+                        , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-red-500 hover:bg-red-300"
+                        ]
+                        [ Icons.trash "w-4 h-4 text-white group-hover:text-gray-500"
+                        ]
+                    ]
+                ]
+
+        _ ->
+            text ""
+
+
+viewRecvFrom :
+    { zone : Time.Zone
+    , edit : RecvFromRecord -> msg
+    , remove : Ulid -> msg
+    }
+    -> Transaction
+    -> Html msg
+viewRecvFrom { zone, edit, remove } t =
+    case t of
+        RecvFrom r ->
+            div [ class "border p-4 hover:bg-blue-100", class "cursor-pointer" ]
+                [ viewRecvFromDetail zone r True
+                , div [ class "flex space-x-2 pt-4" ]
                     [ a
                         [ onClick <| edit r
                         , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-blue-500 hover:bg-blue-300"
@@ -223,37 +253,69 @@ viewSendTo { zone, edit, remove } t =
                         [ Icons.trash "w-4 h-4 text-white group-hover:text-gray-500"
                         ]
                     ]
-                , viewSendToDetail zone r True
                 ]
 
-        RecvFrom _ ->
+        _ ->
             text ""
 
 
-viewPreview : Time.Zone -> Transaction -> Html msg
-viewPreview zone t =
-    case t of
-        SendTo r ->
-            div [ class "border p-4" ]
-                [ h2 [ class "font-bold pb-4" ] [ text "Recipient Information 受取人様情報" ]
-                , viewSendToDetail zone r False
-                ]
+viewPreview : Time.Zone -> List Transaction -> List (Html msg)
+viewPreview zone ts =
+    let
+        send =
+            List.filterMap
+                (\t ->
+                    case t of
+                        SendTo r ->
+                            Just r
 
-        RecvFrom _ ->
-            text ""
+                        _ ->
+                            Nothing
+                )
+                ts
+
+        recv =
+            List.filterMap
+                (\t ->
+                    case t of
+                        RecvFrom r ->
+                            Just r
+
+                        _ ->
+                            Nothing
+                )
+                ts
+    in
+    List.map (viewSendToPreview zone) send ++ List.map (viewRecvFromPreview zone) recv
+
+
+viewSendToPreview : Time.Zone -> SendToRecord -> Html msg
+viewSendToPreview zone r =
+    div [ class "border p-4" ]
+        [ h2 [ class "font-bold" ] [ text "Recipient Information 受取人様情報" ]
+        , viewSendToDetail zone r False
+        ]
+
+
+viewRecvFromPreview : Time.Zone -> RecvFromRecord -> Html msg
+viewRecvFromPreview zone r =
+    div [ class "border p-4" ]
+        [ h2 [ class "font-bold" ] [ text "Sender's Information 送金人様情報" ]
+        , viewRecvFromDetail zone r False
+        ]
 
 
 viewSendToDetail : Time.Zone -> SendToRecord -> Bool -> Html msg
 viewSendToDetail zone r showTime =
-    div [ class "grid grid-cols-1 print:grid-col-3 sm:grid-cols-3 col-gap-4 row-gap-4" ]
+    div [ class "grid grid-cols-1 print:grid-cols-3 sm:grid-cols-3 col-gap-4 row-gap-4" ]
         [ if showTime then
-            div [ class "col-span-3" ]
+            div [ class "sm:col-span-3" ]
                 [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Last time used（最後に使った日時）" ]
                 , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| posixToDateTime zone r.posix ]
                 ]
 
           else
-            text ""
+            div [ class "sm:col-span-3" ] [ text "" ]
         , div [ class "" ]
             [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "First Name（名）" ]
             , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text r.name.firstName ]
@@ -268,11 +330,49 @@ viewSendToDetail zone r showTime =
             ]
         , div []
             [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Amount to be sent（送金額）" ]
-            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| String.fromFloat r.amount ]
+            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| FormUtils.formatFloatPrice r.amount ]
             ]
         , div []
             [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Currency（通貨）" ]
-            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| PayoutCountry.lookup r.countryCode ]
+            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b truncate" ] [ text <| PayoutCountry.lookup r.countryCode ]
+            ]
+        , div []
+            [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Purpose（送金目的）" ]
+            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| Data.Purpose.toString r.purpose ]
+            ]
+        ]
+
+
+viewRecvFromDetail : Time.Zone -> RecvFromRecord -> Bool -> Html msg
+viewRecvFromDetail zone r showTime =
+    div [ class "grid grid-cols-1 print:grid-cols-3 sm:grid-cols-3 col-gap-4 row-gap-4" ]
+        [ if showTime then
+            div [ class "sm:col-span-3" ]
+                [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Last time used（最後に使った日時）" ]
+                , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| posixToDateTime zone r.posix ]
+                ]
+
+          else
+            div [ class "sm:col-span-3" ] [ text "" ]
+        , div [ class "sm:col-span-3" ]
+            [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "MTCN（送金管理番号）" ]
+            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| MTCN.toString r.mtcn ]
+            ]
+        , div [ class "" ]
+            [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "First Name（名）" ]
+            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text r.name.firstName ]
+            ]
+        , div [ class "" ]
+            [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Middle Name（ミドルネーム）" ]
+            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| Maybe.withDefault "\u{3000}" r.name.middleName ]
+            ]
+        , div [ class "" ]
+            [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Last Name（姓）" ]
+            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text r.name.lastName ]
+            ]
+        , div []
+            [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Amount Expected（予想受取額）" ]
+            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| FormUtils.formatFloatPrice r.amount ++ "円（JPY）" ]
             ]
         , div []
             [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Purpose（送金目的）" ]
