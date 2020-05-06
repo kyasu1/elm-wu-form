@@ -6,7 +6,7 @@ import CustomerForm
 import Data.Occupation
 import FormUtils
 import Html exposing (..)
-import Html.Attributes exposing (class, title)
+import Html.Attributes exposing (class, src, title)
 import Html.Events exposing (..)
 import Icons
 import Json.Decode as D
@@ -276,24 +276,29 @@ newUlid msg posix =
 --
 
 
-header : Html msg -> Html msg
-header content =
+container : Html msg -> Html msg
+container content =
     div [ class "bg-gray-400 py-2 sm:py-8 px-2 sm:px-6 lg:px-8 min-h-screen" ]
         [ div [ class "bg-white relative mx-auto max-w-6xl" ]
             [ div [ class "px-4 sm:px-16 pt-8 pb-4" ]
                 [ h1 [ class "text-xl font-bold flex flex-col sm:flex-row" ]
-                    [ span [] [ text "Western Union Preparation Form" ]
-                    , span [ class "hidden sm:inline" ] [ text "\u{00A0}/\u{00A0}" ]
-                    , span [] [ text "ウェスタンユニオン 送金メモ" ]
+                    [ img [ src "/logo.wu.big.svg", class "inline w-40 bg-black mr-3" ] []
+                    , span [ class "mt-1" ] [ text "Transaction Form / 送金メモ" ]
                     ]
-                , ol [ class "ml-4 text-sm" ]
-                    [ li [] [ text "1. Fill in your information." ]
-                    , li [] [ text "2. Add Sender or Recipient Information" ]
-                    , li [] [ text "3. Choose upto three transactions" ]
-                    , li [] [ text "4. Print out the memo" ]
-                    ]
+
+                -- , ol [ class "ml-4 text-sm" ]
+                --     [ li [] [ text "1. Fill in your information." ]
+                --     , li [] [ text "2. Add Sender or Recipient Information" ]
+                --     , li [] [ text "3. Choose upto three transactions" ]
+                --     , li [] [ text "4. Print out the memo" ]
+                --     ]
+                , p [ class "ml-4 text-sm" ]
+                    [ text "1. Fill in your information. 2. Add Sender or Recipient Information 3. Choose upto three transactions 4. Print out the memo" ]
                 ]
             , content
+            , div [ class "text-base leading-6 text-gray-400 text-center pb-4" ]
+                [ text "© 2020 Office IKO Co. All rights reserved."
+                ]
             ]
         ]
 
@@ -305,10 +310,10 @@ view model =
             Preview.view { customer = c, ts = model.ts, zone = model.zone, close = ClickedClosePreview c, print = ClickedPrintPreview }
 
         NotRegistered form ->
-            header (CustomerForm.contactForm form |> Html.map CustomerFormMsg)
+            container (CustomerForm.contactForm form |> Html.map CustomerFormMsg)
 
         Registered c ->
-            header <|
+            container <|
                 div [ class "px-4 sm:px-16" ]
                     [ div [ class "flex pb-4" ]
                         [ h2 [ class "font-bold" ] [ text "Your Information お客様情報" ]
@@ -373,6 +378,8 @@ view model =
                                 ]
                                 [ Icons.plus "w-4 h-4 text-white group-hover:text-gray-500"
                                 ]
+                            , h5 [ class "text-xs text-gray-800 leading-1 ml-2 mt-1" ] [ text "送金したい相手の情報を入力してください" ]
+
                             ]
                         , div [ class "space-y-4" ] <|
                             case List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditSendTo, remove = ClickedRemove }) model.ts |> List.concat of
@@ -392,7 +399,7 @@ view model =
                         ]
                     , div [ class "my-4 py-4" ]
                         [ div [ class "flex pb-4" ]
-                            [ h2 [ class "font-bold" ] [ text "Receive From（受取先）" ]
+                            [ h2 [ class "font-bold" ] [ text "Receive From（送金人）" ]
                             , button
                                 [ onClick ClickedAddRecvFrom
                                 , title "Add/追加"
@@ -400,6 +407,7 @@ view model =
                                 ]
                                 [ Icons.plus "w-4 h-4 text-white group-hover:text-gray-500"
                                 ]
+                            , h5 [ class "text-xs text-gray-800 leading-1 ml-2 mt-1" ] [ text "送金された方の情報を入力してください" ]
                             ]
                         , div [ class "space-y-4" ] <|
                             case List.map (Transaction.viewRecvFrom { zone = model.zone, edit = ClickedEditRecvFrom, remove = ClickedRemove }) model.ts |> List.concat of
@@ -431,10 +439,10 @@ view model =
                     ]
 
         EditSendTo c f ->
-            SendToForm.view f |> Html.map SendToFormMsg |> header
+            SendToForm.view f |> Html.map SendToFormMsg |> container
 
         EditRecvFrom c f ->
-            RecvFromForm.view f |> Html.map RecvFromFormMsg |> header
+            RecvFromForm.view f |> Html.map RecvFromFormMsg |> container
 
 
 

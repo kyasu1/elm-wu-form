@@ -62,9 +62,9 @@ list =
 
 view : { f | purpose : Purpose } -> ({ f | purpose : Purpose } -> msg) -> Html msg
 view f tagger =
-    div []
+    div [ class "px-2"]
         [ div [ class "text-xs px-2" ] [ text "Purpose/送金目的" ]
-        , div [ class "flex flex-wrap space-x-1" ]
+        , div [ class "flex flex-wrap px-2 space-x-1" ]
             (List.map
                 (\( v, l ) ->
                     label

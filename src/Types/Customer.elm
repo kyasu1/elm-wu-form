@@ -45,6 +45,7 @@ decoder =
         (D.field "occupation" Data.Occupation.decoder)
         (D.field "nationality" D.string)
 
+
 view : Customer -> Html msg
 view c =
     div [ class "grid grid-cols-1 print:grid-cols-3 sm:grid-cols-3 col-gap-4 print:row-gap-4 row-gap-8" ]
@@ -76,4 +77,14 @@ view c =
             [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Occupation（職業）" ]
             , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| Data.Occupation.lookup c.occupation ]
             ]
+        , div [ class "border text-xs leading-5 text-gray-900 p-1 rounded" ]
+            [ p [] [ text "株式会社オフィスイコー" ]
+            , p [] [ text "埼玉県越谷市七左町1-299-1" ]
+            , p [] [ text "TEL 048-987-1020" ]
+            ]
+        , div [ class "border text-xs leading-5 text-gray-900 p-1 rounded" ]
+            [ p [] [ text "IKO PAWNSHOP" ]
+            , p [] [ text "1-299-1 SHICHIZA, KOSHIGAYA" ]
+            , p [] [ text "SAITAMA" ]
+            ]            
         ]

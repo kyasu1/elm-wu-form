@@ -164,7 +164,7 @@ amount =
 
 view : Model -> Html Msg
 view { form, submitted, payoutCountryState } =
-    div [ class "bg-white px-4 py-4 sm:px-16 sm:py-16 border rounded border-gray-200" ]
+    div [ class "bg-white px-4 py-4 sm:px-16 sm:py-8 border-t" ]
         [ h2 [ class "p-2 font-black" ] [ text "Recipient Information 受取人様情報" ]
         , p [ class "px-2 text-sm" ] [ text "お名前はアルファベットで入力してください" ]
         , div [ class "grid grid-cols-1 sm:grid-cols-3 col-gap-4" ]
