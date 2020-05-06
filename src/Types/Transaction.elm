@@ -199,11 +199,11 @@ viewSendTo :
     , remove : Ulid -> msg
     }
     -> Transaction
-    -> Html msg
+    -> List (Html msg)
 viewSendTo { zone, edit, remove } t =
     case t of
         SendTo r ->
-            div [ class "border p-4", class " --hover:bg-blue-100 --cursor-pointer" ]
+            [ div [ class "border p-4", class " --hover:bg-blue-100 --cursor-pointer" ]
                 [ viewSendToDetail zone r True
                 , div [ class "flex space-x-2 pt-4" ]
                     [ a
@@ -222,9 +222,10 @@ viewSendTo { zone, edit, remove } t =
                         ]
                     ]
                 ]
+            ]
 
         _ ->
-            text ""
+            []
 
 
 viewRecvFrom :
@@ -233,11 +234,11 @@ viewRecvFrom :
     , remove : Ulid -> msg
     }
     -> Transaction
-    -> Html msg
+    -> List (Html msg)
 viewRecvFrom { zone, edit, remove } t =
     case t of
         RecvFrom r ->
-            div [ class "border p-4", class "--hover:bg-blue-100 --cursor-pointer" ]
+            [ div [ class "border p-4", class "--hover:bg-blue-100 --cursor-pointer" ]
                 [ viewRecvFromDetail zone r True
                 , div [ class "flex space-x-2 pt-4" ]
                     [ a
@@ -254,9 +255,10 @@ viewRecvFrom { zone, edit, remove } t =
                         ]
                     ]
                 ]
+            ]
 
         _ ->
-            text ""
+            []
 
 
 viewPreview : Time.Zone -> List Transaction -> List (Html msg)

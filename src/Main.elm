@@ -310,7 +310,7 @@ view model =
         Registered c ->
             header <|
                 div [ class "px-4 sm:px-16" ]
-                    [ div [ class "flex border-b my-8 pb-4" ]
+                    [ div [ class "flex pb-4" ]
                         [ h2 [ class "font-bold" ] [ text "Your Information お客様情報" ]
                         , div [ class "flex ml-2 space-x-2" ]
                             [ span [ class "inline-flex rounded-md shadow-sm" ]
@@ -363,7 +363,7 @@ view model =
                             , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| Data.Occupation.lookup c.occupation ]
                             ]
                         ]
-                    , div [ class "border-b-4 my-8 py-4" ]
+                    , div [ class "my-4 py-4" ]
                         [ div [ class "flex pb-4" ]
                             [ h2 [ class "font-bold" ] [ text "Send To（送金先）" ]
                             , button
@@ -375,9 +375,22 @@ view model =
                                 ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditSendTo, remove = ClickedRemove }) model.ts
+                            case List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditSendTo, remove = ClickedRemove }) model.ts |> List.concat of
+                                [] ->
+                                    [ div
+                                        [ class "flex justify-center items-center py-8 border border-blue-500 bg-gray-100 hover:bg-blue-200 cursor-pointer text-center"
+                                        , onClick ClickedAddSendTo
+                                        ]
+                                        [ text "Add New Recipient"
+                                        , br [] []
+                                        , text "送金先を追加"
+                                        ]
+                                    ]
+
+                                children ->
+                                    children
                         ]
-                    , div [ class "border-b-4 my-8 py-4" ]
+                    , div [ class "my-4 py-4" ]
                         [ div [ class "flex pb-4" ]
                             [ h2 [ class "font-bold" ] [ text "Receive From（受取先）" ]
                             , button
@@ -389,9 +402,22 @@ view model =
                                 ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            List.map (Transaction.viewRecvFrom { zone = model.zone, edit = ClickedEditRecvFrom, remove = ClickedRemove }) model.ts
+                            case List.map (Transaction.viewRecvFrom { zone = model.zone, edit = ClickedEditRecvFrom, remove = ClickedRemove }) model.ts |> List.concat of
+                                [] ->
+                                    [ div
+                                        [ class "flex justify-center items-center py-8 border border-blue-500 bg-gray-100 hover:bg-blue-200 cursor-pointer text-center"
+                                        , onClick ClickedAddRecvFrom
+                                        ]
+                                        [ text "Add New Sender"
+                                        , br [] []
+                                        , text "送金人を追加"
+                                        ]
+                                    ]
+
+                                children ->
+                                    children
                         ]
-                    , div [ class "mt-8 border-t border-gray-200 pt-5" ]
+                    , div [ class "pb-4" ]
                         [ div [ class "flex print:hidden justify-center sm:justify-end" ]
                             [ FormUtils.okButton ClickedPreview "Print"
                             ]
