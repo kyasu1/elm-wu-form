@@ -4,6 +4,7 @@ import AssocSet as Set exposing (Set)
 import Browser
 import CustomerForm
 import Data.Occupation
+import FormUtils
 import Html exposing (..)
 import Html.Attributes exposing (class, title)
 import Html.Events exposing (..)
@@ -390,37 +391,24 @@ view model =
                         , div [ class "space-y-4" ] <|
                             List.map (Transaction.viewRecvFrom { zone = model.zone, edit = ClickedEditRecvFrom, remove = ClickedRemove }) model.ts
                         ]
-                    , div [ class "pb-8 text-center" ]
-                        [ button
-                            [ class "rounded mx-2 px-2 py-1 w-24 bg-blue-700 text-white font-bold"
-                            , onClick ClickedPreview
+                    , div [ class "mt-8 border-t border-gray-200 pt-5" ]
+                        [ div [ class "flex print:hidden justify-center sm:justify-end" ]
+                            [ FormUtils.okButton ClickedPreview "Print"
                             ]
-                            [ text "Print" ]
-                        , button [ class "rounded mx-2 px-2 py-1 w-24 bg-red-700 text-white font-bold" ] [ text "Clear All" ]
                         ]
                     , case model.modal of
                         None ->
                             text ""
 
                         DangerModal config ->
-                             (Modals.simpleWithDismiss config)
+                            Modals.simpleWithDismiss config
                     ]
 
         EditSendTo c f ->
-            SendToForm.view f |> Html.map SendToFormMsg
+            SendToForm.view f |> Html.map SendToFormMsg |> header
 
         EditRecvFrom c f ->
-            RecvFromForm.view f |> Html.map RecvFromFormMsg
-
-
--- modal : Html msg -> Html msg
--- modal html =
---     div [ class "fixed bottom-0 inset-x-0 px-4 pb-6 sm:inset-0 sm:p-0 flex items-center justify-center" ]
---         [ div [ class "fixed inset-0 transition-opcaity" ]
---             [ div [ class "absolute inset-0 bg-gray-500 opacity-75" ] []
---             ]
---         , html
---         ]
+            RecvFromForm.view f |> Html.map RecvFromFormMsg |> header
 
 
 

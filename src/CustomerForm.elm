@@ -270,13 +270,9 @@ contactForm { f, submitted } =
                     Data.Occupation.list
                 )
             ]
-        , div [ class "text-center" ]
-            [ span [ class "inline-flex rounded-md shadow-sm" ]
-                [ button
-                    [ onClick ClickedRegister
-                    , class "inline-flex w-24 justify-center items-center px-2.5 py-1.5 border border-transparent text-xs leading-4 font-medium rounded text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700 transition ease-in-out duration-150"
-                    ]
-                    [ text "登録" ]
+        , div [ class "mt-8 border-t border-gray-200 pt-5 col-span-1 sm:col-span-3" ]
+            [ div [ class "flex print:hidden justify-center sm:justify-end" ]
+                [ FormUtils.okButton ClickedRegister "Save"
                 ]
             ]
         ]

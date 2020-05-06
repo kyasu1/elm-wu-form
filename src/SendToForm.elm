@@ -203,8 +203,12 @@ view { form, submitted, payoutCountryState } =
             , div [ class "sm:col-span-2" ] [ Data.PayoutCountry.selector payoutCountryState |> Html.map PayoutCountryMsg ]
             , div [ class "sm:col-span-3" ]
                 [ Data.Purpose.view form ChangedInput ]
-            , div [] [ button [ onClick ClickedRegister, title "Save/保存" ] [ text "Save" ] ]
-            , div [] [ button [ onClick ClickedClose, title "Cancel/取り消し" ] [ text "Cancel" ] ]
+            , div [ class "mt-8 border-t border-gray-200 pt-5 col-span-1 sm:col-span-3" ]
+                [ div [ class "flex print:hidden justify-center sm:justify-end" ]
+                    [ FormUtils.cancelButton ClickedClose "Cancel"
+                    , FormUtils.okButton ClickedRegister "Save"
+                    ]
+                ]
             ]
         ]
 

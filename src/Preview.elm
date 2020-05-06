@@ -1,5 +1,6 @@
 module Preview exposing (view)
 
+import FormUtils
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -25,8 +26,12 @@ view { customer, ts, close, print, zone } =
                 , Customer.view customer
                 ]
                 :: Transaction.viewPreview zone ts
-        , div [ class "flex" ]
-            [ div [ class "print:hidden" ] [ button [ onClick close ] [ text "Close" ] ]
-            , div [ class "print:hidden" ] [ button [ onClick print ] [ text "Print" ] ]
+        , div [ class "print:hidden"]
+            [ div [ class "mt-8 border-t border-gray-200 pt-5" ]
+                [ div [ class "flex justify-center sm:justify-end" ]
+                    [ FormUtils.cancelButton close "Close"
+                    , FormUtils.okButton print "Print"
+                    ]
+                ]
             ]
         ]

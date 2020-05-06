@@ -1,9 +1,20 @@
-module FormUtils exposing (Error, customAlpha, field, formatFloatPrice, fromString, optional, required, toString)
+module FormUtils exposing
+    ( Error
+    , cancelButton
+    , customAlpha
+    , field
+    , formatFloatPrice
+    , fromString
+    , optional
+    , required
+    , okButton
+    , toString
+    )
 
 import Form.Decoder as FD
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onClick, onInput)
 import Round
 
 
@@ -136,4 +147,32 @@ field { v, l, u, d, n, submitted } =
                 []
             , span [ class "inline-block py-1 px-2 text-sm text-red-500" ] [ text (Maybe.withDefault "\u{3000}" errorText) ]
             ]
+        ]
+
+
+
+--
+
+
+cancelButton : msg -> String -> Html msg
+cancelButton msg title =
+    span [ class "inline-flex rounded-md shadow-sm" ]
+        [ button
+            [ class "py-1 px-4 border border-gray-300 rounded-md text-sm leading-5 font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:bg-gray-50 active:text-gray-800 transition duration-150 ease-in-out"
+            , type_ "button"
+            , onClick msg
+            ]
+            [ text title ]
+        ]
+
+
+okButton : msg -> String -> Html msg
+okButton msg title =
+    span [ class "ml-3 inline-flex rounded-md shadow-sm" ]
+        [ button
+            [ class "inline-flex justify-center py-1 px-4 border border-transparent text-sm leading-5 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700 transition duration-150 ease-in-out"
+            , type_ "submit"
+            , onClick msg
+            ]
+            [ text title ]
         ]
