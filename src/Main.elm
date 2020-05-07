@@ -44,6 +44,7 @@ type State
 type Modal
     = None
     | DangerModal (Modals.SimpleWithDismissConfig Msg)
+    | AlertModal (Modals.AlertConfig Msg)
 
 
 main : Program E.Value Model Msg
@@ -82,6 +83,7 @@ type Msg
     | ClickedClosePreview Customer
     | ClickedPrintPreview
     | ClickedPick Ulid
+    | ClickedDismiss
 
 
 init : E.Value -> ( Model, Cmd Msg )
@@ -194,6 +196,19 @@ update msg model =
                 ClickedRemoveCancel ->
                     ( { model | modal = None }, toggleModal <| E.bool False )
 
+                ClickedPick ulid ->
+                    if Set.member ulid model.picked then
+                        ( { model | picked = Set.remove ulid model.picked }, Cmd.none )
+
+                    else if Set.size model.picked >= 3 then
+                        ( { model | modal = AlertModal { title = "Too many items picked !", message = "一度に選択できるフォームは3個までです", okText = "閉じる", okCmd = ClickedDismiss } }, toggleModal <| E.bool True )
+
+                    else
+                        ( { model | picked = Set.insert ulid model.picked }, Cmd.none )
+
+                ClickedDismiss ->
+                    ( { model | modal = None }, toggleModal <| E.bool False )
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -292,10 +307,10 @@ container content =
                 --     , li [] [ text "3. Choose upto three transactions" ]
                 --     , li [] [ text "4. Print out the memo" ]
                 --     ]
-                , p [ class "ml-4 text-sm" ]
-                    [ text "Please brigin the completed form before visiting us ! 1. Fill in your information. 2. Add Recipient or Sender Information 3. Choose upto three transactions 4. Print out or take a screen shot !" ]
-                , p [ class "ml-4 text-sm" ]
-                    [ text "こちらのフォームをご来店前に作成してお持ちいただくとスムーズにお手続きが可能です。1. お客様情報の入力 2. 受取人または送金人の情報を入力 3. 一回に3件まで選択可能です 4. 印刷またはスクリーンショットを撮ってださい" ]
+                , p [ class "ml-4 text-sm py-1" ]
+                    [ text "Please bring the completed form before visiting us ! 1. Fill in your information 2. Add Recipient or Sender Information 3. Choose upto three transactions 4. Print-out or take a screen shot !" ]
+                , p [ class "ml-4 text-sm py-1" ]
+                    [ text "こちらのフォームをご来店前に作成してお持ちいただくとスムーズにお手続きが可能です。1. お客様情報の入力 2. 受取人または送金人の情報を入力 3. 一度に3件まで選択可能です 4. 印刷またはスクリーンショットを撮ってださい" ]
                 ]
             , content
             , div [ class "text-sm leading-6 text-gray-400 text-center pb-4" ]
@@ -310,7 +325,13 @@ view : Model -> Html Msg
 view model =
     case model.state of
         Preview c ->
-            Preview.view { customer = c, ts = model.ts, zone = model.zone, close = ClickedClosePreview c, print = ClickedPrintPreview }
+            Preview.view
+                { customer = c
+                , ts = List.filter (\t -> Transaction.member t model.picked) model.ts
+                , zone = model.zone
+                , close = ClickedClosePreview c
+                , print = ClickedPrintPreview
+                }
 
         NotRegistered form ->
             container (CustomerForm.contactForm form |> Html.map CustomerFormMsg)
@@ -384,7 +405,19 @@ view model =
                             , h5 [ class "text-xs text-gray-800 leading-1 ml-2 mt-1" ] [ text "送金したい相手の情報を入力してください" ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            case List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditSendTo, remove = ClickedRemove }) model.ts |> List.concat of
+                            case
+                                List.map
+                                    (Transaction.viewSendTo
+                                        { zone = model.zone
+                                        , edit = ClickedEditSendTo
+                                        , remove = ClickedRemove
+                                        , picked = Set.toList model.picked
+                                        , pick = ClickedPick
+                                        }
+                                    )
+                                    model.ts
+                                    |> List.concat
+                            of
                                 [] ->
                                     [ div
                                         [ class "flex justify-center items-center py-8 border border-blue-500 bg-gray-100 hover:bg-blue-200 cursor-pointer text-center"
@@ -412,7 +445,19 @@ view model =
                             , h5 [ class "text-xs text-gray-800 leading-1 ml-2 mt-1" ] [ text "送金された方の情報を入力してください" ]
                             ]
                         , div [ class "space-y-4" ] <|
-                            case List.map (Transaction.viewRecvFrom { zone = model.zone, edit = ClickedEditRecvFrom, remove = ClickedRemove }) model.ts |> List.concat of
+                            case
+                                List.map
+                                    (Transaction.viewRecvFrom
+                                        { zone = model.zone
+                                        , edit = ClickedEditRecvFrom
+                                        , remove = ClickedRemove
+                                        , picked = Set.toList model.picked
+                                        , pick = ClickedPick
+                                        }
+                                    )
+                                    model.ts
+                                    |> List.concat
+                            of
                                 [] ->
                                     [ div
                                         [ class "flex justify-center items-center py-8 border border-blue-500 bg-gray-100 hover:bg-blue-200 cursor-pointer text-center"
@@ -438,6 +483,9 @@ view model =
 
                         DangerModal config ->
                             Modals.simpleWithDismiss config
+
+                        AlertModal config ->
+                            Modals.alert config
                     ]
 
         EditSendTo c f ->

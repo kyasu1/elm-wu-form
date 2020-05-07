@@ -1,7 +1,7 @@
-module Modals exposing (SimpleWithDismissConfig, simpleWithDismiss)
+module Modals exposing (AlertConfig, SimpleWithDismissConfig, alert, simpleWithDismiss)
 
 import Html exposing (Html, button, div, h3, p, span, text)
-import Html.Attributes exposing (class, type_)
+import Html.Attributes exposing (class, id, type_)
 import Html.Events exposing (onClick)
 import Icons
 
@@ -68,6 +68,42 @@ simpleWithDismiss config =
                         , onClick config.cancelCmd
                         ]
                         [ text config.cancelText ]
+                    ]
+                ]
+            ]
+
+
+type alias AlertConfig msg =
+    { title : String
+    , message : String
+    , okText : String
+    , okCmd : msg
+    }
+
+
+alert : AlertConfig msg -> Html msg
+alert config =
+    wrapper <|
+        div [ class "relative bg-white rounded-lg px-4 pt-5 pb-4 overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full sm:p-6" ]
+            [ div [ class "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100" ]
+                [ Icons.exclamation "h-6 w-6 text-red-600"
+                ]
+            , div [ class "mt-3 text-center sm:mt-5" ]
+                [ h3 [ class "text-lg leading-6 font-medium text-gray-900", id "modal-headline" ]
+                    [ text config.title ]
+                , div [ class "mt-2" ]
+                    [ p [ class "text-sm leading-5 text-gray-500" ]
+                        [ text config.message ]
+                    ]
+                ]
+            , div [ class "mt-5 sm:mt-6" ]
+                [ span [ class "flex w-full rounded-md shadow-sm" ]
+                    [ button
+                        [ class "inline-flex justify-center w-full rounded-md border border-transparent px-4 py-2 bg-indigo-600 text-base leading-6 font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo transition ease-in-out duration-150 sm:text-sm sm:leading-5"
+                        , type_ "button"
+                        , onClick config.okCmd
+                        ]
+                        [ text config.okText ]
                     ]
                 ]
             ]

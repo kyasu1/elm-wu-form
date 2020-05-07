@@ -4,6 +4,7 @@ module Types.Transaction exposing
     , Transaction
     , decoder
     , encode
+    , member
     , recvFrom
     , removeTransaction
     , sendTo
@@ -13,6 +14,7 @@ module Types.Transaction exposing
     , viewSendTo
     )
 
+import AssocSet as Set exposing (Set)
 import Data.PayoutCountry as PayoutCountry
 import Data.Purpose exposing (Purpose)
 import FormUtils
@@ -60,6 +62,16 @@ unwrapUlid t =
 
         RecvFrom r ->
             r.ulid
+
+
+member : Transaction -> Set Ulid -> Bool
+member t picked =
+    case t of
+        SendTo r ->
+            Set.member r.ulid picked
+
+        RecvFrom r ->
+            Set.member r.ulid picked
 
 
 upsert : Transaction -> List Transaction -> List Transaction
@@ -197,10 +209,12 @@ viewSendTo :
     { zone : Time.Zone
     , edit : SendToRecord -> msg
     , remove : Ulid -> msg
+    , picked : List Ulid
+    , pick : Ulid -> msg
     }
     -> Transaction
     -> List (Html msg)
-viewSendTo { zone, edit, remove } t =
+viewSendTo { zone, edit, remove, picked, pick } t =
     case t of
         SendTo r ->
             [ div [ class "border px-4 py-2", class " --hover:bg-blue-100 --cursor-pointer" ]
@@ -220,6 +234,22 @@ viewSendTo { zone, edit, remove } t =
                         ]
                         [ Icons.trash "w-4 h-4 text-white group-hover:text-gray-500"
                         ]
+                    , (if List.filter (\ulid -> ulid == r.ulid) picked /= [] then
+                        ( "bg-green-500 hover:bg-green-300", "text-white group-hover:text-gray-900" )
+
+                       else
+                        ( "bg-gray-300 hover:bg-green-300", "text-white group-hover:text-gray-900" )
+                      )
+                        |> (\( bgClass, iconClass ) ->
+                                a
+                                    [ class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6"
+                                    , class bgClass
+                                    , onClick (pick r.ulid)
+                                    , title "Pick / 選択"
+                                    ]
+                                    [ Icons.check ("w-4 h-4 text-white " ++ iconClass)
+                                    ]
+                           )
                     ]
                 ]
             ]
@@ -232,10 +262,12 @@ viewRecvFrom :
     { zone : Time.Zone
     , edit : RecvFromRecord -> msg
     , remove : Ulid -> msg
+    , picked : List Ulid
+    , pick : Ulid -> msg
     }
     -> Transaction
     -> List (Html msg)
-viewRecvFrom { zone, edit, remove } t =
+viewRecvFrom { zone, edit, remove, picked, pick } t =
     case t of
         RecvFrom r ->
             [ div [ class "border px-4 py-2", class "--hover:bg-blue-100 --cursor-pointer" ]
@@ -244,15 +276,33 @@ viewRecvFrom { zone, edit, remove } t =
                     [ a
                         [ onClick <| edit r
                         , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-blue-500 hover:bg-blue-300"
+                        , title "Edit / 編集する"
                         ]
                         [ Icons.pencil "w-4 h-4 text-white group-hover:text-gray-500"
                         ]
                     , a
                         [ onClick <| remove r.ulid
                         , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-red-500 hover:bg-red-300"
+                        , title "Delete / 削除する"
                         ]
                         [ Icons.trash "w-4 h-4 text-white group-hover:text-gray-500"
                         ]
+                    , (if List.filter (\ulid -> ulid == r.ulid) picked /= [] then
+                        ( "bg-green-500 hover:bg-green-300", "text-white group-hover:text-gray-900" )
+
+                       else
+                        ( "bg-gray-300 hover:bg-green-300", "text-white group-hover:text-gray-900" )
+                      )
+                        |> (\( bgClass, iconClass ) ->
+                                a
+                                    [ class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6"
+                                    , class bgClass
+                                    , onClick (pick r.ulid)
+                                    , title "Pick / 選択"
+                                    ]
+                                    [ Icons.check ("w-4 h-4 text-white " ++ iconClass)
+                                    ]
+                           )
                     ]
                 ]
             ]
