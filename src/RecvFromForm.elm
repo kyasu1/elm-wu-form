@@ -125,7 +125,7 @@ formDecoder ulid posix =
         |> FD.field Types.Name.formDecoder
         |> FD.field (FD.lift .amount amount)
         |> FD.field (FD.lift .purpose FD.identity)
-        |> FD.field (FD.lift .mtcn mtcn)
+        |> FD.field (FD.lift .mtcn MTCN.formDecoder)
 
 
 amount : FD.Decoder String Error Float
@@ -143,12 +143,6 @@ amount =
             )
 
 
-mtcn : FD.Decoder String Error MTCN
-mtcn =
-    FD.identity
-        |> FD.map MTCN.fromString
-
-
 
 --
 
@@ -163,8 +157,8 @@ view { form, submitted } =
                 [ field
                     { v = form.mtcn
                     , l = "MTCN（送金管理番号）"
-                    , u = \s -> { form | mtcn = s } |> ChangedInput
-                    , d = mtcn
+                    , u = \s -> { form | mtcn = MTCN.format s } |> ChangedInput
+                    , d = MTCN.formDecoder
                     , n = "mtcn"
                     , submitted = submitted
                     }

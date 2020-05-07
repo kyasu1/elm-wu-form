@@ -203,7 +203,7 @@ viewSendTo :
 viewSendTo { zone, edit, remove } t =
     case t of
         SendTo r ->
-            [ div [ class "border p-4", class " --hover:bg-blue-100 --cursor-pointer" ]
+            [ div [ class "border px-4 py-2", class " --hover:bg-blue-100 --cursor-pointer" ]
                 [ viewSendToDetail zone r True
                 , div [ class "flex space-x-2 pt-4" ]
                     [ a
@@ -238,7 +238,7 @@ viewRecvFrom :
 viewRecvFrom { zone, edit, remove } t =
     case t of
         RecvFrom r ->
-            [ div [ class "border p-4", class "--hover:bg-blue-100 --cursor-pointer" ]
+            [ div [ class "border px-4 py-2", class "--hover:bg-blue-100 --cursor-pointer" ]
                 [ viewRecvFromDetail zone r True
                 , div [ class "flex space-x-2 pt-4" ]
                     [ a
@@ -293,7 +293,7 @@ viewPreview zone ts =
 
 viewSendToPreview : Time.Zone -> SendToRecord -> Html msg
 viewSendToPreview zone r =
-    div [ class "border p-4" ]
+    div [ class "border px-4 py-2" ]
         [ h2 [ class "font-bold" ] [ text "Recipient Information 受取人様情報" ]
         , viewSendToDetail zone r False
         ]
@@ -301,7 +301,7 @@ viewSendToPreview zone r =
 
 viewRecvFromPreview : Time.Zone -> RecvFromRecord -> Html msg
 viewRecvFromPreview zone r =
-    div [ class "border p-4" ]
+    div [ class "border px-4 py-2" ]
         [ h2 [ class "font-bold" ] [ text "Sender's Information 送金人様情報" ]
         , viewRecvFromDetail zone r False
         ]
@@ -309,7 +309,7 @@ viewRecvFromPreview zone r =
 
 viewSendToDetail : Time.Zone -> SendToRecord -> Bool -> Html msg
 viewSendToDetail zone r showTime =
-    div [ class "grid grid-cols-1 print:grid-cols-3 sm:grid-cols-3 col-gap-4 row-gap-4" ]
+    div [ class "grid grid-cols-1 print:grid-cols-3 sm:grid-cols-3 col-gap-4 row-gap-2" ]
         [ if showTime then
             div [ class "sm:col-span-3" ]
                 [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Last time used（最後に使った日時）" ]
@@ -347,7 +347,7 @@ viewSendToDetail zone r showTime =
 
 viewRecvFromDetail : Time.Zone -> RecvFromRecord -> Bool -> Html msg
 viewRecvFromDetail zone r showTime =
-    div [ class "grid grid-cols-1 print:grid-cols-3 sm:grid-cols-3 col-gap-4 row-gap-4" ]
+    div [ class "grid grid-cols-1 print:grid-cols-3 sm:grid-cols-3 col-gap-4 row-gap-2" ]
         [ if showTime then
             div [ class "sm:col-span-3" ]
                 [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "Last time used（最後に使った日時）" ]
@@ -356,9 +356,9 @@ viewRecvFromDetail zone r showTime =
 
           else
             div [ class "sm:col-span-3" ] [ text "" ]
-        , div [ class "sm:col-span-3" ]
+        , div [ class "print:col-span-3 sm:col-span-3" ]
             [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "MTCN（送金管理番号）" ]
-            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| MTCN.toString r.mtcn ]
+            , div [ class "mt-1 text-sm leading-5 text-gray-900 border-b" ] [ text <| MTCN.format <| MTCN.toString r.mtcn ]
             ]
         , div [ class "" ]
             [ div [ class "text-sm leading-5 font-medium text-gray-500" ] [ text "First Name（名）" ]

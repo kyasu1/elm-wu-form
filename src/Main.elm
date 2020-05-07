@@ -6,7 +6,7 @@ import CustomerForm
 import Data.Occupation
 import FormUtils
 import Html exposing (..)
-import Html.Attributes exposing (class, src, title)
+import Html.Attributes exposing (class, href, src, target, title)
 import Html.Events exposing (..)
 import Icons
 import Json.Decode as D
@@ -293,11 +293,14 @@ container content =
                 --     , li [] [ text "4. Print out the memo" ]
                 --     ]
                 , p [ class "ml-4 text-sm" ]
-                    [ text "1. Fill in your information. 2. Add Sender or Recipient Information 3. Choose upto three transactions 4. Print out the memo" ]
+                    [ text "Please brigin the completed form before visiting us ! 1. Fill in your information. 2. Add Recipient or Sender Information 3. Choose upto three transactions 4. Print out or take a screen shot !" ]
+                , p [ class "ml-4 text-sm" ]
+                    [ text "こちらのフォームをご来店前に作成してお持ちいただくとスムーズにお手続きが可能です。1. お客様情報の入力 2. 受取人または送金人の情報を入力 3. 一回に3件まで選択可能です 4. 印刷またはスクリーンショットを撮ってださい" ]
                 ]
             , content
-            , div [ class "text-base leading-6 text-gray-400 text-center pb-4" ]
-                [ text "© 2020 Office IKO Co. All rights reserved."
+            , div [ class "text-sm leading-6 text-gray-400 text-center pb-4" ]
+                [ p [] [ text "tel: 048-987-1020 / 10:00am - 7:30pm" ]
+                , p [] [ a [ href "https://www.officeiko.co.jp/", target "_blank" ] [ text "© 2020 Office IKO Co. All rights reserved." ] ]
                 ]
             ]
         ]
@@ -379,7 +382,6 @@ view model =
                                 [ Icons.plus "w-4 h-4 text-white group-hover:text-gray-500"
                                 ]
                             , h5 [ class "text-xs text-gray-800 leading-1 ml-2 mt-1" ] [ text "送金したい相手の情報を入力してください" ]
-
                             ]
                         , div [ class "space-y-4" ] <|
                             case List.map (Transaction.viewSendTo { zone = model.zone, edit = ClickedEditSendTo, remove = ClickedRemove }) model.ts |> List.concat of

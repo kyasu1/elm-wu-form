@@ -19,7 +19,7 @@ view :
     -> Html msg
 view { customer, ts, close, print, zone } =
     div [ class "sheet padding-10mm mx-auto" ]
-        [ h1 [ class "p-2 font-bold text-lg text-center" ]
+        [ h1 [ class "p-2 mb-2 font-bold text-lg text-center" ]
             [ img [ src "/logo.wu.big.svg", class "inline w-40 bg-black mr-4" ] []
             , span [ class "mt-1" ] [ text "Transaction Form / 送金メモ" ]
             ]
@@ -37,7 +37,8 @@ view { customer, ts, close, print, zone } =
                     ]
                 ]
             ]
-        , div [ class "text-base leading-6 text-gray-400 text-center pt-4" ]
-            [ text "© 2020 Office IKO Co. All rights reserved."
+        , div [ class "hidden print:block text-sm leading-6 text-gray-900 text-center p-4" ]
+            [ p [] [ text "Please bring this form to your agent. この用紙を代理店までお持ちください" ]
+            , p [] [ a [ href "https://www.officeiko.co.jp/", target "_blank" ] [ text "© 2020 Office IKO Co. All rights reserved." ] ]
             ]
         ]
