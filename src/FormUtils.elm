@@ -2,12 +2,13 @@ module FormUtils exposing
     ( Error
     , cancelButton
     , customAlpha
+    , dangerButton
     , field
     , formatFloatPrice
     , fromString
+    , okButton
     , optional
     , required
-    , okButton
     , toString
     )
 
@@ -154,7 +155,7 @@ field { v, l, u, d, n, submitted } =
 --
 
 
-cancelButton : msg -> String -> Html msg
+cancelButton : msg -> Html msg -> Html msg
 cancelButton msg title =
     span [ class "inline-flex rounded-md shadow-sm" ]
         [ button
@@ -162,11 +163,11 @@ cancelButton msg title =
             , type_ "button"
             , onClick msg
             ]
-            [ text title ]
+            [ title ]
         ]
 
 
-okButton : msg -> String -> Html msg
+okButton : msg -> Html msg -> Html msg
 okButton msg title =
     span [ class "ml-3 inline-flex rounded-md shadow-sm" ]
         [ button
@@ -174,5 +175,17 @@ okButton msg title =
             , type_ "submit"
             , onClick msg
             ]
-            [ text title ]
+            [ title ]
+        ]
+
+
+dangerButton : msg -> Html msg -> Html msg
+dangerButton msg title =
+    span [ class "ml-3 inline-flex rounded-md shadow-sm" ]
+        [ button
+            [ class "inline-flex justify-center py-1 px-4 border border-transparent text-sm leading-5 font-medium rounded-md text-white bg-red-600 hover:bg-red-500 focus:outline-none focus:border-red-700 focus:shadow-outline-red active:bg-red-700 transition duration-150 ease-in-out"
+            , type_ "submit"
+            , onClick msg
+            ]
+            [ title ]
         ]

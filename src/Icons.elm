@@ -63,3 +63,11 @@ check c =
         [ path [ d "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" ]
             []
         ]
+
+
+download : String -> Svg msg
+download c =
+    svg [ class c, fill "none", stroke "currentColor", strokeLinecap "round", strokeLinejoin "round", strokeWidth "2", viewBox "0 0 24 24" ]
+        [ path [ d "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" ]
+            []
+        ]

@@ -6,6 +6,7 @@ import FormUtils exposing (Error, field)
 import Html exposing (..)
 import Html.Attributes exposing (class, name, type_, value)
 import Html.Events exposing (onClick)
+import Icons
 import Json.Decode as D
 import Json.Encode as E
 import Types.Customer as Customer exposing (Customer)
@@ -188,7 +189,7 @@ nationality =
 
 contactForm : Model -> Html Msg
 contactForm { f, submitted } =
-    div [ class "bg-white px-2 sm:px-16 pb-16 pt-4 border-t " ]
+    div [ class "bg-white px-2 sm:px-16 pb-4 pt-4 border-t " ]
         [ h2 [ class "p-2 font-black" ] [ text "Your Information お客様情報" ]
         , p [ class "px-2 text-sm" ] [ text "お名前はアルファベットで入力してください" ]
         , div [ class "flex flex-col sm:flex-row" ]
@@ -272,7 +273,7 @@ contactForm { f, submitted } =
             ]
         , div [ class "mt-8 border-t border-gray-200 pt-5 col-span-1 sm:col-span-3" ]
             [ div [ class "flex print:hidden justify-center sm:justify-end" ]
-                [ FormUtils.okButton ClickedRegister "Save"
+                [ FormUtils.okButton ClickedRegister <| span [ class "flex items-center" ] [ Icons.download "w-4 h-4", span [ class "ml-2" ] [ text "Save" ] ]
                 ]
             ]
         ]

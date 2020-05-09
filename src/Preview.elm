@@ -4,6 +4,7 @@ import FormUtils
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Icons
 import Time
 import Types.Customer as Customer exposing (Customer)
 import Types.Transaction as Transaction exposing (Transaction)
@@ -32,8 +33,8 @@ view { customer, ts, close, print, zone } =
         , div [ class "print:hidden" ]
             [ div [ class "pt-2" ]
                 [ div [ class "flex justify-center sm:justify-end" ]
-                    [ FormUtils.cancelButton close "Close"
-                    , FormUtils.okButton print "Print"
+                    [ FormUtils.cancelButton close <| span [ class "flex items-center" ] [ Icons.x "w-4 h-4", span [ class "ml-2" ] [ text "Close" ] ]
+                    , FormUtils.okButton print <| span [ class "flex items-center" ] [ Icons.printer "w-4 h-4", span [ class "ml-2" ] [ text "Print" ] ]
                     ]
                 ]
             ]

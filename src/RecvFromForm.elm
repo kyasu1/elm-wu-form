@@ -6,6 +6,7 @@ import FormUtils exposing (Error, field)
 import Html exposing (..)
 import Html.Attributes exposing (class, title)
 import Html.Events exposing (onClick)
+import Icons
 import Task
 import Time exposing (Posix)
 import Types.MTCN as MTCN exposing (MTCN)
@@ -199,8 +200,8 @@ view { form, submitted } =
                 [ Data.Purpose.view form ChangedInput ]
             , div [ class "mt-8 border-t border-gray-200 pt-5 col-span-1 sm:col-span-3" ]
                 [ div [ class "flex print:hidden justify-center sm:justify-end" ]
-                    [ FormUtils.cancelButton ClickedClose "Cancel"
-                    , FormUtils.okButton ClickedRegister "Save"
+                    [ FormUtils.cancelButton ClickedClose <| span [ class "flex items-center" ] [ Icons.x "w-4 h-4", span [ class "ml-2" ] [ text "Cancel" ] ]
+                    , FormUtils.okButton ClickedRegister <| span [ class "flex items-center" ] [ Icons.download "w-4 h-4", span [ class "ml-2" ] [ text "Save" ] ]
                     ]
                 ]
             ]

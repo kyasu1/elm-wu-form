@@ -64,6 +64,8 @@ main =
 type Msg
     = CustomerFormMsg CustomerForm.Msg
     | ClickedReset
+    | ClickedResetOk
+    | ClickedResetCancel
     | ClickedEdit
     | ClickedAddSendTo
     | ClickedAddRecvFrom
@@ -130,9 +132,6 @@ update msg model =
         Registered c ->
             case msg of
                 -- Customer
-                ClickedReset ->
-                    ( { model | state = NotRegistered CustomerForm.initialModel }, Cmd.none )
-
                 ClickedEdit ->
                     ( { model | state = NotRegistered <| CustomerForm.edit c }, Cmd.none )
 
@@ -169,6 +168,35 @@ update msg model =
                 ClickedPreview ->
                     ( { model | state = Preview c }, Cmd.none )
 
+                ClickedReset ->
+                    ( { model
+                        | modal =
+                            DangerModal
+                                { title = "Reset/リセット"
+                                , message = "Are you sure you want reset all data ? データを全て削除してよろしいですか？"
+                                , okText = "Reset/リセット"
+                                , cancelText = "Cancel"
+                                , okCmd = ClickedResetOk
+                                , cancelCmd = ClickedResetCancel
+                                }
+                      }
+                    , Cmd.none
+                    )
+
+                ClickedResetOk ->
+                    ( { model
+                        | state = NotRegistered CustomerForm.initialModel
+                        , ts = []
+                        , picked = Set.empty
+                        , modal = None
+                      }
+                    , Cmd.none
+                    )
+
+                ClickedResetCancel ->
+                    ( { model | modal = None }, Cmd.none )
+
+                --
                 ClickedRemove ulid ->
                     ( { model
                         | modal =
@@ -314,7 +342,7 @@ container content =
                 ]
             , content
             , div [ class "text-sm leading-6 text-gray-400 text-center pb-4" ]
-                [ p [] [ text "tel: 048-987-1020 / 10:00am - 7:30pm" ]
+                [ p [] [ text "tel: 048-987-1020 / 10:00am - 6:30pm" ]
                 , p [] [ a [ href "https://www.officeiko.co.jp/", target "_blank" ] [ text "© 2020 Office IKO Co. All rights reserved." ] ]
                 ]
             ]
@@ -349,15 +377,6 @@ view model =
                                     , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-blue-500 hover:bg-blue-300"
                                     ]
                                     [ Icons.pencil "w-4 h-4 text-white group-hover:text-gray-500"
-                                    ]
-                                ]
-                            , span [ class "inline-flex" ]
-                                [ button
-                                    [ onClick ClickedReset
-                                    , title "Reset/リセット"
-                                    , class "group flex items-center justify-center text-sm cursor-pointer rounded-full w-6 h-6 bg-red-500 hover:bg-red-300"
-                                    ]
-                                    [ Icons.trash "w-4 h-4 text-white group-hover:text-gray-500"
                                     ]
                                 ]
                             ]
@@ -474,7 +493,8 @@ view model =
                         ]
                     , div [ class "pb-4" ]
                         [ div [ class "flex print:hidden justify-center sm:justify-end" ]
-                            [ FormUtils.okButton ClickedPreview "Print"
+                            [ FormUtils.dangerButton ClickedReset <| span [ class "flex items-center" ] [ Icons.trash "w-4 h-4", span [ class "ml-2" ] [ text "Reset" ] ]
+                            , FormUtils.okButton ClickedPreview <| span [ class "flex items-center" ] [ Icons.printer "w-4 h-4", span [ class "ml-2" ] [ text "Preview" ] ]
                             ]
                         ]
                     , case model.modal of
